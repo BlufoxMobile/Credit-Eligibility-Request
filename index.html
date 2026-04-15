@@ -61,14 +61,12 @@ const DEFAULT_MANAGERS=["sOrozco@blufoxmobile.com","ZSalazar@blufoxmobile.com","
 const DEFAULT_DMS=["jcabrales@blufoxmobile.com","IDhorajiwala@blufoxmobile.com","mbrooks@blufoxmobile.com","juCarrillo@blufoxmobile.com","jbilbrey@blufoxmobile.com"];
 
 let config={stores:[...DEFAULT_STORES],managers:[...DEFAULT_MANAGERS],dms:[...DEFAULT_DMS]};
-let webhookUrl="",savedWebhook="";
+const WEBHOOK_URL="https://hooks.zapier.com/hooks/catch/20441079/uj2a2vg/";
 const app=document.getElementById("app");
 
 // --- Persistence via localStorage ---
 function loadConfig(){try{const c=localStorage.getItem("blufox-credit-config");if(c){const d=JSON.parse(c);if(d.stores?.length)config.stores=d.stores;if(d.managers?.length)config.managers=d.managers;if(d.dms?.length)config.dms=d.dms}}catch(e){}}
 function saveConfig(){try{localStorage.setItem("blufox-credit-config",JSON.stringify(config))}catch(e){}}
-function loadWebhook(){try{const w=localStorage.getItem("blufox-credit-webhook");if(w){webhookUrl=w;savedWebhook=w}}catch(e){}}
-function saveWebhookStorage(){try{localStorage.setItem("blufox-credit-webhook",webhookUrl);savedWebhook=webhookUrl}catch(e){}}
 
 function formatPhone(raw){const d=raw.replace(/\D/g,"").slice(0,10);if(d.length<=3)return d;if(d.length<=6)return`(${d.slice(0,3)}) ${d.slice(3)}`;return`(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`}
 function opts(arr,placeholder){return`<option value="">${placeholder}</option>`+arr.map(v=>`<option value="${v}">${v}</option>`).join("")}
@@ -76,24 +74,12 @@ function today(){return new Date().toISOString().slice(0,10)}
 
 // ============ FORM SCREEN ============
 function renderForm(){
-loadConfig();loadWebhook();
+loadConfig();
 app.innerHTML=`
 <div style="text-align:center;margin-bottom:28px;animation:fadeUp .4s ease both">
   <img src="${LOGO}" alt="Cook County Cooks" class="logo">
   <h1 style="font-size:26px;font-weight:700;margin:0 0 6px;letter-spacing:-.02em">Credit Line Increase Request</h1>
   <p style="font-size:14px;color:var(--muted);margin:0;line-height:1.5">Responses will be emailed to your Blufox Email within 24–48 hours.</p>
-</div>
-<div style="text-align:right;margin-bottom:10px">
-  <button onclick="toggleSettings()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;display:inline-flex;align-items:center;gap:5px" id="settingsToggle">⚙️ Webhook Settings</button>
-</div>
-<div id="settingsPanel" style="display:none;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:18px;animation:fadeUp .3s ease both">
-  <label class="lbl" style="margin-bottom:8px">Zapier Webhook URL</label>
-  <div style="display:flex;gap:8px">
-    <input class="inp" type="url" id="webhookInput" placeholder="https://hooks.zapier.com/hooks/catch/..." value="${webhookUrl}">
-    <button onclick="doSaveWebhook()" style="padding:10px 18px;font-size:14px;font-weight:600;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;white-space:nowrap">Save</button>
-  </div>
-  <p id="webhookStatus" style="font-size:12px;color:var(--green);margin:8px 0 0;display:${savedWebhook?"block":"none"}">✓ Webhook saved & active</p>
-  <p class="hint" style="margin:8px 0 0">Paste your Zapier "Catch Hook" URL. Form data POSTs as JSON.</p>
 </div>
 <div id="successPanel" style="display:none"></div>
 <div id="formCard" class="card">
@@ -125,9 +111,6 @@ document.getElementById('fEmailPrefix').addEventListener('input',function(){this
 document.getElementById('fPhone').addEventListener('input',function(){this.value=formatPhone(this.value)});
 }
 
-function toggleSettings(){const p=document.getElementById('settingsPanel');p.style.display=p.style.display==='none'?'block':'none'}
-function doSaveWebhook(){webhookUrl=document.getElementById('webhookInput').value;saveWebhookStorage();document.getElementById('webhookStatus').style.display='block'}
-
 function handleSubmit(){
   const f={date:document.getElementById('fDate').value,repName:document.getElementById('fName').value.trim(),store:document.getElementById('fStore').value,repEmailPrefix:document.getElementById('fEmailPrefix').value.trim(),managerEmail:document.getElementById('fManager').value,dmEmail:document.getElementById('fDM').value,customerName:document.getElementById('fCustName').value.trim(),accountNumber:document.getElementById('fAccount').value.trim(),customerPhone:document.getElementById('fPhone').value};
   let valid=true;
@@ -137,10 +120,9 @@ function handleSubmit(){
   document.getElementById('fPhone').classList.toggle('err-border',!phoneOk);
   if(!phoneOk)valid=false;
   if(!valid)return;
-  if(!savedWebhook){document.getElementById('formError').style.display='block';document.getElementById('formErrorText').textContent='No webhook URL configured. Open Webhook Settings to add one.';return}
   document.getElementById('formError').style.display='none';
   document.getElementById('submitBtn').disabled=true;document.getElementById('submitBtn').textContent='Submitting…';
-  fetch(savedWebhook,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({date:f.date,repName:f.repName,store:f.store,repEmail:f.repEmailPrefix+DOMAIN,managerEmail:f.managerEmail,dmEmail:f.dmEmail,customerName:f.customerName,accountNumber:f.accountNumber,customerPhone:f.customerPhone,submittedAt:new Date().toISOString()})}).then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);showSuccess()}).catch(e=>{document.getElementById('formError').style.display='block';document.getElementById('formErrorText').textContent='Webhook error: '+e.message;document.getElementById('submitBtn').disabled=false;document.getElementById('submitBtn').textContent='Submit Request'});
+  fetch(WEBHOOK_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({date:f.date,repName:f.repName,store:f.store,repEmail:f.repEmailPrefix+DOMAIN,managerEmail:f.managerEmail,dmEmail:f.dmEmail,customerName:f.customerName,accountNumber:f.accountNumber,customerPhone:f.customerPhone,submittedAt:new Date().toISOString()})}).then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);showSuccess()}).catch(e=>{document.getElementById('formError').style.display='block';document.getElementById('formErrorText').textContent='Webhook error: '+e.message;document.getElementById('submitBtn').disabled=false;document.getElementById('submitBtn').textContent='Submit Request'});
 }
 
 function showSuccess(){
@@ -197,7 +179,7 @@ function saveEdit(){const v=document.getElementById('editInput').value.trim();if
 function saveAll(){saveConfig();const btn=document.getElementById('saveAllBtn');btn.textContent='✓ Saved!';btn.style.background='var(--green)';setTimeout(()=>{btn.textContent='Save All Changes';btn.style.background=''},2000)}
 
 // Init
-loadConfig();loadWebhook();renderForm();
+loadConfig();renderForm();
 </script>
 </body>
 </html>
