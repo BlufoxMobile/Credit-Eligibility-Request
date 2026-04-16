@@ -122,7 +122,14 @@ function handleSubmit(){
   if(!valid)return;
   document.getElementById('formError').style.display='none';
   document.getElementById('submitBtn').disabled=true;document.getElementById('submitBtn').textContent='Submitting…';
-  fetch(WEBHOOK_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({date:f.date,repName:f.repName,store:f.store,repEmail:f.repEmailPrefix+DOMAIN,managerEmail:f.managerEmail,dmEmail:f.dmEmail,customerName:f.customerName,accountNumber:f.accountNumber,customerPhone:f.customerPhone,submittedAt:new Date().toISOString()})}).then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);showSuccess()}).catch(e=>{document.getElementById('formError').style.display='block';document.getElementById('formErrorText').textContent='Webhook error: '+e.message;document.getElementById('submitBtn').disabled=false;document.getElementById('submitBtn').textContent='Submit Request'});
+  // Use URLSearchParams (application/x-www-form-urlencoded) to avoid a CORS preflight.
+  // Zapier's webhook endpoint does not return Access-Control-Allow-Headers for a JSON
+  // Content-Type preflight, which caused the real request body to be dropped and the
+  // Zap to fire on the empty OPTIONS request. Form-urlencoded is a CORS-safelisted
+  // content type and Zapier parses each field as a top-level token.
+  const payload={date:f.date,repName:f.repName,store:f.store,repEmail:f.repEmailPrefix+DOMAIN,managerEmail:f.managerEmail,dmEmail:f.dmEmail,customerName:f.customerName,accountNumber:f.accountNumber,customerPhone:f.customerPhone,submittedAt:new Date().toISOString()};
+  const body=new URLSearchParams();Object.keys(payload).forEach(k=>body.append(k,payload[k]));
+  fetch(WEBHOOK_URL,{method:"POST",body:body}).then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);showSuccess()}).catch(e=>{document.getElementById('formError').style.display='block';document.getElementById('formErrorText').textContent='Webhook error: '+e.message;document.getElementById('submitBtn').disabled=false;document.getElementById('submitBtn').textContent='Submit Request'});
 }
 
 function showSuccess(){
