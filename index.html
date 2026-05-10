@@ -60,12 +60,12 @@ const DEFAULT_STORES=["Bourbonnais Xfinity Store","Burbank Xfinity Store","Calum
 const DEFAULT_MANAGERS=["sOrozco@blufoxmobile.com","ZSalazar@blufoxmobile.com","fSalazar@blufoxmobile.com","ZMitchell@blufoxmobile.com","kStrickland@blufoxmobile.com","GWilliams@blufoxmobile.com","juCarrillo@blufoxmobile.com","tChowdhury@blufoxmobile.com","jTrentham@blufoxmobile.com","ABell@blufoxmobile.com","vHuerto@blufoxmobile.com","maRodriguez@blufoxmobile.com","CCrooks@blufoxmobile.com","zSpradling@blufoxmobile.com","ISolis@blufoxmobile.com","miJackson@blufoxmobile.com","dRegan@blufoxmobile.com","kKirkland@blufoxmobile.com","IDhorajiwala@blufoxmobile.com","OsGarcia@blufoxmobile.com","HDodge@blufoxmobile.com","EWashington@blufoxmobile.com"];
 const DEFAULT_DMS=["jcabrales@blufoxmobile.com","IDhorajiwala@blufoxmobile.com","mbrooks@blufoxmobile.com","juCarrillo@blufoxmobile.com","jbilbrey@blufoxmobile.com"];
 
-let config={stores:[...DEFAULT_STORES],managers:[...DEFAULT_MANAGERS],dms:[...DEFAULT_DMS]};
+const FALLBACK_EMAIL="jbilbrey@blufoxmobile.com";let config={stores:[...DEFAULT_STORES],managers:[...DEFAULT_MANAGERS],dms:[...DEFAULT_DMS],storeManagers:{},storeDMs:{}};
 const WEBHOOK_URL="https://hooks.zapier.com/hooks/catch/20441079/uj2a2vg/";
 const app=document.getElementById("app");
 
 // --- Persistence via localStorage ---
-function loadConfig(){try{const c=localStorage.getItem("blufox-credit-config");if(c){const d=JSON.parse(c);if(d.stores?.length)config.stores=d.stores;if(d.managers?.length)config.managers=d.managers;if(d.dms?.length)config.dms=d.dms}}catch(e){}}
+function loadConfig(){try{const c=localStorage.getItem("blufox-credit-config");if(c){const d=JSON.parse(c);if(d.stores?.length)config.stores=d.stores;if(d.managers?.length)config.managers=d.managers;if(d.dms?.length)config.dms=d.dms;if(d.storeManagers&&typeof d.storeManagers==="object")config.storeManagers=d.storeManagers;if(d.storeDMs&&typeof d.storeDMs==="object")config.storeDMs=d.storeDMs}}catch(e){}}
 function saveConfig(){try{localStorage.setItem("blufox-credit-config",JSON.stringify(config))}catch(e){}}
 
 function formatPhone(raw){const d=raw.replace(/\D/g,"").slice(0,10);if(d.length<=3)return d;if(d.length<=6)return`(${d.slice(0,3)}) ${d.slice(3)}`;return`(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`}
@@ -90,8 +90,8 @@ app.innerHTML=`
     <div class="email-wrap" id="emailWrap"><input class="inp" id="fEmailPrefix" placeholder="yourname"><div class="email-suffix">${DOMAIN}</div></div>
     <p class="hint">Your Blufox email — not your BP login. Approval responses go here.</p><p class="err-text" id="errEmail" style="display:none">Required</p>
   </div>
-  <div class="fg" style="margin-bottom:20px;animation-delay:.25s"><label class="lbl">Manager's Blufox Email <span style="color:var(--red)">*</span></label><select class="sel placeholder" id="fManager">${opts(config.managers,"Select manager…")}</select><p class="err-text" id="errManager" style="display:none">Required</p></div>
-  <div class="fg" style="margin-bottom:20px;animation-delay:.3s"><label class="lbl">District Manager's Email</label><select class="sel placeholder" id="fDM">${opts(config.dms,"Select DM…")}</select></div>
+  
+  
   <div class="divider"></div>
   <p style="font-size:13px;font-weight:600;color:var(--orange);text-transform:uppercase;letter-spacing:.06em;margin-bottom:18px">Customer Information</p>
   <div class="fg" style="margin-bottom:20px;animation-delay:.35s"><label class="lbl">Customer Name on Account <span style="color:var(--red)">*</span></label><input class="inp" id="fCustName" placeholder="Customer's full name"><p class="err-text" id="errCustName" style="display:none">Required</p></div>
@@ -112,9 +112,9 @@ document.getElementById('fPhone').addEventListener('input',function(){this.value
 }
 
 function handleSubmit(){
-  const f={date:document.getElementById('fDate').value,repName:document.getElementById('fName').value.trim(),store:document.getElementById('fStore').value,repEmailPrefix:document.getElementById('fEmailPrefix').value.trim(),managerEmail:document.getElementById('fManager').value,dmEmail:document.getElementById('fDM').value,customerName:document.getElementById('fCustName').value.trim(),accountNumber:document.getElementById('fAccount').value.trim(),customerPhone:document.getElementById('fPhone').value};
+  const f={date:document.getElementById('fDate').value,repName:document.getElementById('fName').value.trim(),store:document.getElementById('fStore').value,repEmailPrefix:document.getElementById('fEmailPrefix').value.trim(),managerEmail:(config.storeManagers[document.getElementById('fStore').value]||FALLBACK_EMAIL),dmEmail:(config.storeDMs[document.getElementById('fStore').value]||FALLBACK_EMAIL),customerName:document.getElementById('fCustName').value.trim(),accountNumber:document.getElementById('fAccount').value.trim(),customerPhone:document.getElementById('fPhone').value};
   let valid=true;
-  [['fName','errName','repName'],['fStore','errStore','store'],['fEmailPrefix','errEmail','repEmailPrefix'],['fManager','errManager','managerEmail'],['fCustName','errCustName','customerName'],['fAccount','errAccount','accountNumber']].forEach(([fid,eid,key])=>{const ok=f[key]!=='';document.getElementById(eid).style.display=ok?'none':'block';if(!ok){valid=false;document.getElementById(fid).classList.toggle('err-border',true)}else{document.getElementById(fid).classList.toggle('err-border',false)}});
+  [['fName','errName','repName'],['fStore','errStore','store'],['fEmailPrefix','errEmail','repEmailPrefix'],['fCustName','errCustName','customerName'],['fAccount','errAccount','accountNumber']].forEach(([fid,eid,key])=>{const ok=f[key]!=='';document.getElementById(eid).style.display=ok?'none':'block';if(!ok){valid=false;document.getElementById(fid).classList.toggle('err-border',true)}else{document.getElementById(fid).classList.toggle('err-border',false)}});
   const phoneOk=f.customerPhone.replace(/\D/g,"").length===10;
   document.getElementById('errPhone').style.display=phoneOk?'none':'block';
   document.getElementById('fPhone').classList.toggle('err-border',!phoneOk);
@@ -153,37 +153,57 @@ let adminTab="stores",editIdx=null,editVal="";
 function renderAdmin(){
   loadConfig();
   const tabs=[{key:"stores",icon:"🏪",label:"Stores",count:config.stores.length},{key:"managers",icon:"👤",label:"Managers",count:config.managers.length},{key:"dms",icon:"📋",label:"DMs",count:config.dms.length}];
+  const isStores=adminTab==="stores";
   const current=config[adminTab];
-  const placeholder=adminTab==="stores"?"e.g. Springfield Xfinity Store":"e.g. jsmith@blufoxmobile.com";
-  const labelText=adminTab==="stores"?"Store Location":adminTab==="managers"?"Manager Email":"DM Email";
-
+  const placeholder=isStores?"e.g. Springfield Xfinity Store":"e.g. jsmith@blufoxmobile.com";
+  const labelText=isStores?"Store Location":adminTab==="managers"?"Manager Email":"DM Email";
+  const subtitle=isStores?"Set each store's Manager and DM email. Reps no longer pick these on the form.":adminTab==="managers"?"Manager email options for the store mapping dropdowns.":"District Manager email options for the store mapping dropdowns.";
+  const fallbackNote=`— Not assigned (uses ${FALLBACK_EMAIL}) —`;
+  const buildMappingRow=(item,i)=>{
+    if(editIdx===i){
+      return `<div class="list-item" style="padding:14px 18px"><div style="display:flex;gap:6px;flex:1"><input class="inp" id="editInput" value="${editVal}" style="flex:1;padding:7px 10px;font-size:13px"><button onclick="saveEdit()" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:600">Save</button><button onclick="editIdx=null;renderAdmin()" style="background:transparent;color:var(--muted);border:1px solid var(--inpb);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:12px">✕</button></div></div>`;
+    }
+    const mgr=config.storeManagers[item]||"";
+    const dm=config.storeDMs[item]||"";
+    const mgrOpts=`<option value="">${fallbackNote}</option>`+config.managers.map(m=>`<option value="${m}"${m===mgr?' selected':''}>${m}</option>`).join("");
+    const dmOpts=`<option value="">${fallbackNote}</option>`+config.dms.map(d=>`<option value="${d}"${d===dm?' selected':''}>${d}</option>`).join("");
+    const mappedBadge=(mgr||dm)?'<span style="font-size:10px;font-weight:700;color:var(--green);background:rgba(34,197,94,.12);padding:2px 8px;border-radius:20px;letter-spacing:.04em">ASSIGNED</span>':'<span style="font-size:10px;font-weight:700;color:var(--warn);background:rgba(251,191,36,.12);padding:2px 8px;border-radius:20px;letter-spacing:.04em">UNASSIGNED</span>';
+    return `<div class="list-item" style="flex-direction:column;align-items:stretch;padding:14px 18px;gap:10px"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0"><span style="font-size:15px;font-weight:600;color:var(--text);word-break:break-word">${item}</span>${mappedBadge}</div><div style="display:flex;gap:4px;flex-shrink:0"><button class="icon-btn" style="color:var(--accent);font-size:13px" onclick="startEdit(${i})" title="Rename store">✏️</button><button class="icon-btn" style="color:var(--red);font-size:15px" onclick="removeItem(${i})" title="Remove store">✕</button></div></div><div style="display:grid;grid-template-columns:70px 1fr;gap:8px 10px;align-items:center;font-size:12px"><span style="color:var(--muted);font-weight:600;letter-spacing:.04em;text-transform:uppercase">Manager</span><select class="sel" style="padding:8px 10px;font-size:13px" onchange="updateStoreMapping(${i},'manager',this.value)">${mgrOpts}</select><span style="color:var(--muted);font-weight:600;letter-spacing:.04em;text-transform:uppercase">DM</span><select class="sel" style="padding:8px 10px;font-size:13px" onchange="updateStoreMapping(${i},'dm',this.value)">${dmOpts}</select></div></div>`;
+  };
+  const buildFlatRow=(item,i)=>{
+    if(editIdx===i){
+      return `<div class="list-item"><div style="display:flex;gap:6px;flex:1"><input class="inp" id="editInput" value="${editVal}" style="flex:1;padding:7px 10px;font-size:13px"><button onclick="saveEdit()" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:600">Save</button><button onclick="editIdx=null;renderAdmin()" style="background:transparent;color:var(--muted);border:1px solid var(--inpb);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:12px">✕</button></div></div>`;
+    }
+    return `<div class="list-item"><span style="font-size:14px;color:var(--text);word-break:break-all;flex:1">${item}</span><div style="display:flex;gap:4px;flex-shrink:0"><button class="icon-btn" style="color:var(--accent);font-size:13px" onclick="startEdit(${i})" title="Edit">✏️</button><button class="icon-btn" style="color:var(--red);font-size:15px" onclick="removeItem(${i})" title="Remove">✕</button></div></div>`;
+  };
   app.innerHTML=`<div style="max-width:600px;margin:0 auto;animation:fadeUp .4s ease both">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
-    <div style="display:flex;align-items:center;gap:12px"><img src="${LOGO}" alt="Logo" class="logo-xs"><div><h1 style="font-size:24px;font-weight:700;margin:0">Admin Panel</h1><p style="font-size:13px;color:var(--muted);margin:2px 0 0">Manage dropdown options for the credit request form.</p></div></div>
+    <div style="display:flex;align-items:center;gap:12px"><img src="${LOGO}" alt="Logo" class="logo-xs"><div><h1 style="font-size:24px;font-weight:700;margin:0">Admin Panel</h1><p style="font-size:13px;color:var(--muted);margin:2px 0 0">${subtitle}</p></div></div>
     <button onclick="renderForm()" style="padding:9px 20px;font-size:13px;font-weight:600;color:var(--text);background:transparent;border:1.5px solid var(--inpb);border-radius:8px;cursor:pointer">← Exit Admin</button>
   </div>
   <div style="display:flex;gap:6px;margin-bottom:18px">${tabs.map(t=>`<button class="tab-btn ${adminTab===t.key?'active':''}" onclick="adminTab='${t.key}';editIdx=null;renderAdmin()"><span>${t.icon}</span> ${t.label}<span class="badge" style="background:${adminTab===t.key?'var(--accent)':'var(--inpb)'}">${t.count}</span></button>`).join("")}</div>
   <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px">
     <label class="lbl" style="margin-bottom:6px">Add New ${labelText}</label>
     <div style="display:flex;gap:8px"><input class="inp" id="newItem" placeholder="${placeholder}" style="flex:1"><button onclick="addItem()" style="padding:10px 20px;font-size:14px;font-weight:600;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;white-space:nowrap">+ Add</button></div>
+    ${isStores?'<p class="hint" style="margin-top:8px">After adding, set the Manager and DM in the row below. Stores without a mapping default to '+FALLBACK_EMAIL+'.</p>':''}
   </div>
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:6px 0;max-height:380px;overflow-y:auto" id="itemList">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:6px 0;max-height:480px;overflow-y:auto" id="itemList">
     ${current.length===0?'<p style="color:var(--muted);font-size:14px;text-align:center;padding:24px">No items. Add one above.</p>':''}
-    ${current.map((item,i)=>`<div class="list-item">${editIdx===i?`<div style="display:flex;gap:6px;flex:1"><input class="inp" id="editInput" value="${editVal}" style="flex:1;padding:7px 10px;font-size:13px"><button onclick="saveEdit()" style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:600">Save</button><button onclick="editIdx=null;renderAdmin()" style="background:transparent;color:var(--muted);border:1px solid var(--inpb);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:12px">✕</button></div>`:`<span style="font-size:14px;color:var(--text);word-break:break-all;flex:1">${item}</span><div style="display:flex;gap:4px;flex-shrink:0"><button class="icon-btn" style="color:var(--accent);font-size:13px" onclick="startEdit(${i})" title="Edit">✏️</button><button class="icon-btn" style="color:var(--red);font-size:15px" onclick="removeItem(${i})" title="Remove">✕</button></div>`}</div>`).join("")}
+    ${current.map((item,i)=>isStores?buildMappingRow(item,i):buildFlatRow(item,i)).join("")}
   </div>
   <button class="btn-primary" style="margin-top:18px" id="saveAllBtn" onclick="saveAll()">Save All Changes</button>
   </div>`;
-
   document.getElementById('newItem')?.addEventListener('keydown',e=>{if(e.key==='Enter')addItem()});
   document.getElementById('editInput')?.addEventListener('keydown',e=>{if(e.key==='Enter')saveEdit();if(e.key==='Escape'){editIdx=null;renderAdmin()}});
   document.getElementById('editInput')?.focus();
 }
 
 function addItem(){const v=document.getElementById('newItem').value.trim();if(!v||config[adminTab].includes(v))return;config[adminTab].push(v);config[adminTab].sort((a,b)=>a.localeCompare(b));renderAdmin()}
-function removeItem(i){config[adminTab].splice(i,1);renderAdmin()}
+function removeItem(i){if(adminTab==='stores'){const n=config.stores[i];delete config.storeManagers[n];delete config.storeDMs[n]}config[adminTab].splice(i,1);renderAdmin()}
 function startEdit(i){editIdx=i;editVal=config[adminTab][i];renderAdmin()}
-function saveEdit(){const v=document.getElementById('editInput').value.trim();if(v)config[adminTab][editIdx]=v;editIdx=null;renderAdmin()}
+function saveEdit(){const v=document.getElementById('editInput').value.trim();if(v){if(adminTab==='stores'){const o=config.stores[editIdx];if(o!==v){if(config.storeManagers[o]!==undefined){config.storeManagers[v]=config.storeManagers[o];delete config.storeManagers[o]}if(config.storeDMs[o]!==undefined){config.storeDMs[v]=config.storeDMs[o];delete config.storeDMs[o]}}}config[adminTab][editIdx]=v}editIdx=null;renderAdmin()}
 function saveAll(){saveConfig();const btn=document.getElementById('saveAllBtn');btn.textContent='✓ Saved!';btn.style.background='var(--green)';setTimeout(()=>{btn.textContent='Save All Changes';btn.style.background=''},2000)}
+function updateStoreMapping(i,t,v){const n=config.stores[i];if(t==='manager'){if(v)config.storeManagers[n]=v;else delete config.storeManagers[n]}else{if(v)config.storeDMs[n]=v;else delete config.storeDMs[n]}renderAdmin()}
 
 // Init
 loadConfig();renderForm();
