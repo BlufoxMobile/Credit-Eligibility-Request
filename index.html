@@ -48,6 +48,19 @@ input:focus,select:focus{border-color:var(--accent)!important;box-shadow:0 0 0 3
 .list-item:not(:last-child){border-bottom:1px solid var(--border)}
 .icon-btn{background:none;border:none;cursor:pointer;padding:4px 6px;border-radius:4px;opacity:.7;transition:opacity .15s}
 .icon-btn:hover{opacity:1}
+
+.intent-section{background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.18);border-radius:12px;padding:18px 20px 14px;margin-bottom:24px}
+.intent-title{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:14px;letter-spacing:.02em;text-transform:uppercase}
+.intent-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(59,130,246,0.1)}
+.intent-row:last-child{border-bottom:none;padding-bottom:0}
+.intent-check-group{display:flex;align-items:center;gap:10px}
+.intent-check-group input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent);cursor:pointer;flex-shrink:0}
+.intent-check-group label{font-size:14px;color:var(--text);cursor:pointer;font-weight:500}
+.intent-qty{font-size:13px;background:var(--inp);border:1.5px solid var(--inpb);color:var(--text);border-radius:7px;padding:5px 10px;cursor:pointer;min-width:70px;display:none}
+.intent-qty.visible{display:inline-block}
+.intent-total{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1.5px solid rgba(59,130,246,0.2)}
+.intent-total-label{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.intent-total-val{font-size:18px;font-weight:700;color:var(--accent)}
 </style>
 </head>
 <body>
@@ -97,6 +110,53 @@ app.innerHTML=`
   <div class="fg" style="margin-bottom:20px;animation-delay:.35s"><label class="lbl">Customer Name on Account <span style="color:var(--red)">*</span></label><input class="inp" id="fCustName" placeholder="Customer's full name"><p class="err-text" id="errCustName" style="display:none">Required</p></div>
   <div class="fg" style="margin-bottom:20px;animation-delay:.4s"><label class="lbl">Core Account Number <span style="color:var(--red)">*</span></label><input class="inp" id="fAccount" placeholder="Account number"><p class="err-text" id="errAccount" style="display:none">Required</p></div>
   <div class="fg" style="margin-bottom:24px;animation-delay:.45s"><label class="lbl">Customer Phone Number <span style="color:var(--red)">*</span></label><input class="inp" type="tel" id="fPhone" placeholder="(000) 000-0000"><p class="hint">Valid phone for customer follow-up.</p><p class="err-text" id="errPhone" style="display:none">Enter a 10-digit phone number</p></div>
+  <div class="intent-section">
+    <div class="intent-title">📦 What is the Customer Looking to Add?</div>
+    <div class="intent-row">
+      <div class="intent-check-group">
+        <input type="checkbox" id="cbLines" onchange="updateIntent()">
+        <label for="cbLines">Add a Line</label>
+      </div>
+      <select class="intent-qty" id="qtyLines" onchange="updateIntent()">
+        <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+        <option value="4">4</option><option value="5">5</option>
+      </select>
+    </div>
+    <div class="intent-row">
+      <div class="intent-check-group">
+        <input type="checkbox" id="cbUpgrade" onchange="updateIntent()">
+        <label for="cbUpgrade">Upgrade Phone</label>
+      </div>
+      <select class="intent-qty" id="qtyUpgrade" onchange="updateIntent()">
+        <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+        <option value="4">4</option><option value="5">5</option>
+      </select>
+    </div>
+    <div class="intent-row">
+      <div class="intent-check-group">
+        <input type="checkbox" id="cbWatch" onchange="updateIntent()">
+        <label for="cbWatch">Add a Watch</label>
+      </div>
+      <select class="intent-qty" id="qtyWatch" onchange="updateIntent()">
+        <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+        <option value="4">4</option>
+      </select>
+    </div>
+    <div class="intent-row">
+      <div class="intent-check-group">
+        <input type="checkbox" id="cbTablet" onchange="updateIntent()">
+        <label for="cbTablet">Add a Tablet</label>
+      </div>
+      <select class="intent-qty" id="qtyTablet" onchange="updateIntent()">
+        <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+        <option value="4">4</option>
+      </select>
+    </div>
+    <div class="intent-total">
+      <span class="intent-total-label">Total Items</span>
+      <span class="intent-total-val" id="intentTotal">0</span>
+    </div>
+  </div>
   <div class="warn-box"><span style="font-size:18px;flex-shrink:0;margin-top:1px">⚠️</span><p>Your customer will not be approved if they have delinquent payments or an overdue balance within the last 6 months. Ensure the bill is current with no issues.</p></div>
   <div class="err-box" id="formError" style="display:none"><p id="formErrorText"></p></div>
   <button class="btn-primary" id="submitBtn" onclick="handleSubmit()">Submit Request</button>
@@ -109,6 +169,23 @@ document.querySelectorAll('.sel').forEach(s=>{s.addEventListener('change',functi
 document.getElementById('fEmailPrefix').addEventListener('input',function(){this.value=this.value.replace(/[@\s]/g,"").toLowerCase()});
 // Fix phone
 document.getElementById('fPhone').addEventListener('input',function(){this.value=formatPhone(this.value)});
+}
+
+function updateIntent(){
+  const items=[
+    {cb:'cbLines',qty:'qtyLines'},
+    {cb:'cbUpgrade',qty:'qtyUpgrade'},
+    {cb:'cbWatch',qty:'qtyWatch'},
+    {cb:'cbTablet',qty:'qtyTablet'}
+  ];
+  let total=0;
+  items.forEach(({cb,qty})=>{
+    const checked=document.getElementById(cb).checked;
+    const sel=document.getElementById(qty);
+    sel.classList.toggle('visible',checked);
+    if(checked) total+=parseInt(sel.value,10);
+  });
+  document.getElementById('intentTotal').textContent=total;
 }
 
 function handleSubmit(){
@@ -127,7 +204,18 @@ function handleSubmit(){
   // Content-Type preflight, which caused the real request body to be dropped and the
   // Zap to fire on the empty OPTIONS request. Form-urlencoded is a CORS-safelisted
   // content type and Zapier parses each field as a top-level token.
-  const payload={date:f.date,repName:f.repName,store:f.store,repEmail:f.repEmailPrefix+DOMAIN,managerEmail:f.managerEmail,dmEmail:f.dmEmail,customerName:f.customerName,accountNumber:f.accountNumber,customerPhone:f.customerPhone,submittedAt:new Date().toISOString()};
+  const _lines   = document.getElementById('cbLines').checked   ? parseInt(document.getElementById('qtyLines').value,10)   : 0;
+  const _upgrade = document.getElementById('cbUpgrade').checked ? parseInt(document.getElementById('qtyUpgrade').value,10) : 0;
+  const _watch   = document.getElementById('cbWatch').checked   ? parseInt(document.getElementById('qtyWatch').value,10)   : 0;
+  const _tablet  = document.getElementById('cbTablet').checked  ? parseInt(document.getElementById('qtyTablet').value,10)  : 0;
+  const _total   = _lines + _upgrade + _watch + _tablet;
+  const _summary = [
+    _lines   > 0 ? _lines   + ' Line'    + (_lines   > 1 ? 's' : '')    : '',
+    _upgrade > 0 ? _upgrade + ' Upgrade' + (_upgrade > 1 ? 's' : '')   : '',
+    _watch   > 0 ? _watch   + ' Watch'   + (_watch   > 1 ? 'es' : '')  : '',
+    _tablet  > 0 ? _tablet  + ' Tablet'  + (_tablet  > 1 ? 's' : '')   : ''
+  ].filter(Boolean).join(', ');
+  const payload={date:f.date,repName:f.repName,store:f.store,repEmail:f.repEmailPrefix+DOMAIN,managerEmail:f.managerEmail,dmEmail:f.dmEmail,customerName:f.customerName,accountNumber:f.accountNumber,customerPhone:f.customerPhone,submittedAt:new Date().toISOString(),salesAddLines:_lines,salesUpgradePhones:_upgrade,salesAddWatches:_watch,salesAddTablets:_tablet,salesIntentTotal:_total,salesIntentSummary:_summary||'None'};
   const body=new URLSearchParams();Object.keys(payload).forEach(k=>body.append(k,payload[k]));
   fetch(WEBHOOK_URL,{method:"POST",body:body}).then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);showSuccess()}).catch(e=>{document.getElementById('formError').style.display='block';document.getElementById('formErrorText').textContent='Webhook error: '+e.message;document.getElementById('submitBtn').disabled=false;document.getElementById('submitBtn').textContent='Submit Request'});
 }
