@@ -108,7 +108,7 @@ app.innerHTML=`
   <div class="divider"></div>
   <p style="font-size:13px;font-weight:600;color:var(--orange);text-transform:uppercase;letter-spacing:.06em;margin-bottom:18px">Customer Information</p>
   <div class="fg" style="margin-bottom:20px;animation-delay:.35s"><label class="lbl">Customer Name on Account <span style="color:var(--red)">*</span></label><input class="inp" id="fCustName" placeholder="Customer's full name"><p class="err-text" id="errCustName" style="display:none">Required</p></div>
-  <div class="fg" style="margin-bottom:20px;animation-delay:.4s"><label class="lbl">Core Account Number <span style="color:var(--red)">*</span></label><input class="inp" id="fAccount" placeholder="Account number"><p class="err-text" id="errAccount" style="display:none">Required</p></div>
+  <div class="fg" style="margin-bottom:20px;animation-delay:.4s"><label class="lbl">Core Account Number <span style="color:var(--red)">*</span></label><input class="inp" id="fAccount" inputmode="numeric" autocomplete="off" maxlength="16" placeholder="16-digit Comcast account number"><p class="hint">Must be the 16-digit Comcast/Xfinity Core account number — digits only.</p><p class="err-text" id="errAccount" style="display:none">Enter the 16-digit Comcast account number (digits only)</p></div>
   <div class="fg" style="margin-bottom:24px;animation-delay:.45s"><label class="lbl">Customer Phone Number <span style="color:var(--red)">*</span></label><input class="inp" type="tel" id="fPhone" placeholder="(000) 000-0000"><p class="hint">Valid phone for customer follow-up.</p><p class="err-text" id="errPhone" style="display:none">Enter a 10-digit phone number</p></div>
   <div class="intent-section">
     <div class="intent-title">📦 What is the Customer Looking to Add?</div>
@@ -169,6 +169,9 @@ document.querySelectorAll('.sel').forEach(s=>{s.addEventListener('change',functi
 document.getElementById('fEmailPrefix').addEventListener('input',function(){this.value=this.value.replace(/[@\s]/g,"").toLowerCase()});
 // Fix phone
 document.getElementById('fPhone').addEventListener('input',function(){this.value=formatPhone(this.value)});
+// Account number: digits-only, max 16
+document.getElementById('fAccount').addEventListener('input',function(){this.value=this.value.replace(/\D/g,"").slice(0,16)});
+document.getElementById('fAccount').addEventListener('paste',function(e){e.preventDefault();const t=(e.clipboardData||window.clipboardData).getData('text')||'';this.value=t.replace(/\D/g,"").slice(0,16);this.dispatchEvent(new Event('input'))});
 }
 
 function updateIntent(){
@@ -189,9 +192,15 @@ function updateIntent(){
 }
 
 function handleSubmit(){
-  const f={date:document.getElementById('fDate').value,repName:document.getElementById('fName').value.trim(),store:document.getElementById('fStore').value,repEmailPrefix:document.getElementById('fEmailPrefix').value.trim(),managerEmail:(config.storeManagers[document.getElementById('fStore').value]||FALLBACK_EMAIL),dmEmail:(config.storeDMs[document.getElementById('fStore').value]||FALLBACK_EMAIL),customerName:document.getElementById('fCustName').value.trim(),accountNumber:document.getElementById('fAccount').value.trim(),customerPhone:document.getElementById('fPhone').value};
+  const _rawAccount=document.getElementById('fAccount').value.replace(/\D/g,"");
+  const f={date:document.getElementById('fDate').value,repName:document.getElementById('fName').value.trim(),store:document.getElementById('fStore').value,repEmailPrefix:document.getElementById('fEmailPrefix').value.trim(),managerEmail:(config.storeManagers[document.getElementById('fStore').value]||FALLBACK_EMAIL),dmEmail:(config.storeDMs[document.getElementById('fStore').value]||FALLBACK_EMAIL),customerName:document.getElementById('fCustName').value.trim(),accountNumber:_rawAccount,customerPhone:document.getElementById('fPhone').value};
   let valid=true;
-  [['fName','errName','repName'],['fStore','errStore','store'],['fEmailPrefix','errEmail','repEmailPrefix'],['fCustName','errCustName','customerName'],['fAccount','errAccount','accountNumber']].forEach(([fid,eid,key])=>{const ok=f[key]!=='';document.getElementById(eid).style.display=ok?'none':'block';if(!ok){valid=false;document.getElementById(fid).classList.toggle('err-border',true)}else{document.getElementById(fid).classList.toggle('err-border',false)}});
+  [['fName','errName','repName'],['fStore','errStore','store'],['fEmailPrefix','errEmail','repEmailPrefix'],['fCustName','errCustName','customerName']].forEach(([fid,eid,key])=>{const ok=f[key]!=='';document.getElementById(eid).style.display=ok?'none':'block';if(!ok){valid=false;document.getElementById(fid).classList.toggle('err-border',true)}else{document.getElementById(fid).classList.toggle('err-border',false)}});
+  const accountOk=/^\d{16}$/.test(f.accountNumber);
+  document.getElementById('errAccount').style.display=accountOk?'none':'block';
+  document.getElementById('errAccount').textContent=f.accountNumber.length===0?'Required':'Enter the 16-digit Comcast account number (got '+f.accountNumber.length+' digit'+(f.accountNumber.length===1?'':'s')+')';
+  document.getElementById('fAccount').classList.toggle('err-border',!accountOk);
+  if(!accountOk)valid=false;
   const phoneOk=f.customerPhone.replace(/\D/g,"").length===10;
   document.getElementById('errPhone').style.display=phoneOk?'none':'block';
   document.getElementById('fPhone').classList.toggle('err-border',!phoneOk);
